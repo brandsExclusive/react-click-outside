@@ -11,6 +11,13 @@ function simulateClick(node) {
   return event;
 }
 
+function simulateTouchStart(node) {
+  const event = document.createEvent('Event');
+  event.initEvent('touchstart', true, true);
+  node.dispatchEvent(event);
+  return event;
+}
+
 const mountNode = document.createElement('div');
 document.body.appendChild(mountNode);
 
@@ -153,6 +160,121 @@ describe('enhanceWithClickOutside', () => {
 
     rootComponent.setState({ showEnhancedComponent: false }, () => {
       simulateClick(outsideNode);
+      expect(clickOutsideSpy.calls.length).toBe(1);
+      done();
+    });
+  });
+
+  it('calls handleCLickOutside when touchstarted outside of component', () => {
+    const clickInsideSpy = expect.createSpy();
+    const clickOutsideSpy = expect.createSpy();
+
+    class ToBeEnhancedComponent extends React.Component {
+      handleClick(e) {
+        clickInsideSpy(e);
+      }
+
+      handleClickOutside(e) {
+        this.testBoundToComponent(e);
+      }
+
+      testBoundToComponent() {
+        clickOutsideSpy();
+      }
+
+      render() {
+        return (
+          <div onTouchStart={this.handleClick}>
+            <div ref="nested" />
+          </div>
+        );
+      }
+    }
+
+    const EnhancedComponent = enhanceWithClickOutside(ToBeEnhancedComponent);
+
+    class Root extends React.Component {
+      render() {
+        return (
+          <div>
+            <EnhancedComponent ref="enhancedComponent"/>
+            <div ref="outsideComponent" />
+          </div>
+        );
+      }
+    }
+
+    const rootComponent = ReactDOM.render(<Root />, mountNode);
+
+    const enhancedComponent = rootComponent.refs.enhancedComponent;
+    const enhancedNode = ReactDOM.findDOMNode(enhancedComponent);
+
+    const wrappedComponent = enhancedComponent.__wrappedComponent;
+
+    const nestedNode = ReactDOM.findDOMNode(wrappedComponent.refs.nested);
+
+    const outsideNode = rootComponent.refs.outsideComponent;
+
+    simulateTouchStart(enhancedNode);
+    expect(clickInsideSpy.calls.length).toBe(1);
+    expect(clickOutsideSpy.calls.length).toBe(0);
+
+    simulateTouchStart(nestedNode);
+    expect(clickInsideSpy.calls.length).toBe(2);
+    expect(clickOutsideSpy.calls.length).toBe(0);
+
+    // Stop propagation in the outside node should not prevent the
+    // handleOutsideClick handler from being called
+    outsideNode.addEventListener('touchstart', e => e.stopPropagation());
+
+    const event = simulateTouchStart(outsideNode);
+    expect(clickOutsideSpy).toHaveBeenCalled();
+  });
+
+  it('does not call handleClickOutside (on touchstart) when unmounted', (done) => {
+    const clickOutsideSpy = expect.createSpy();
+
+    class ToBeEnhancedComponent extends React.Component {
+      handleClickOutside() {
+        clickOutsideSpy();
+      }
+
+      render() {
+        return <div />;
+      }
+    }
+
+    const EnhancedComponent = enhanceWithClickOutside(ToBeEnhancedComponent);
+
+    class Root extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          showEnhancedComponent: true,
+        };
+      }
+
+      render() {
+        return (
+          <div>
+            {this.state.showEnhancedComponent &&
+              <EnhancedComponent ref="enhancedComponent"/>
+            }
+            <div ref="outsideComponent" />
+          </div>
+        );
+      }
+    }
+
+    const rootComponent = ReactDOM.render(<Root />, mountNode);
+    const outsideNode = rootComponent.refs.outsideComponent;
+
+    expect(clickOutsideSpy.calls.length).toBe(0);
+    simulateTouchStart(outsideNode);
+    expect(clickOutsideSpy.calls.length).toBe(1);
+
+    rootComponent.setState({ showEnhancedComponent: false }, () => {
+      simulateTouchStart(outsideNode);
       expect(clickOutsideSpy.calls.length).toBe(1);
       done();
     });
