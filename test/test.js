@@ -20,7 +20,7 @@ function simulateTouchStart(node) {
 
 function simulateMove(node) {
   const event = document.createEvent('Event');
-  event.initEvent('touchmove', true, true);
+  event.initEvent('touchend', true, true);
   node.dispatchEvent(event);
   return event;
 }
@@ -287,7 +287,7 @@ describe('enhanceWithClickOutside', () => {
     });
   });
 
-  it('calls handleCLickOutside when touchmoved outside of component', () => {
+  it('calls handleCLickOutside when touchend outside of component', () => {
     const clickInsideSpy = expect.createSpy();
     const clickOutsideSpy = expect.createSpy();
 
@@ -306,7 +306,7 @@ describe('enhanceWithClickOutside', () => {
 
       render() {
         return (
-          <div onTouchMove={this.handleClick}>
+          <div onTouchEnd={this.handleClick}>
             <div ref="nested" />
           </div>
         );
@@ -347,13 +347,13 @@ describe('enhanceWithClickOutside', () => {
 
     // Stop propagation in the outside node should not prevent the
     // handleOutsideClick handler from being called
-    outsideNode.addEventListener('touchmove', e => e.stopPropagation());
+    outsideNode.addEventListener('touchend', e => e.stopPropagation());
 
     const event = simulateMove(outsideNode);
     expect(clickOutsideSpy).toHaveBeenCalled();
   });
 
-  it('does not call handleClickOutside (on touchmove) when unmounted', (done) => {
+  it('does not call handleClickOutside (on touchend) when unmounted', (done) => {
     const clickOutsideSpy = expect.createSpy();
 
     class ToBeEnhancedComponent extends React.Component {
