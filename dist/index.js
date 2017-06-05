@@ -33,11 +33,15 @@ module.exports = function enhanceWithClickOutside(WrappedComponent) {
       key: 'componentDidMount',
       value: function componentDidMount() {
         document.addEventListener('click', this.handleClickOutside, true);
+        document.addEventListener('touchstart', this.handleClickOutside, true);
+        document.addEventListener('touchend', this.handleClickOutside, true);
       }
     }, {
       key: 'componentWillUnmount',
       value: function componentWillUnmount() {
         document.removeEventListener('click', this.handleClickOutside, true);
+        document.removeEventListener('touchstart', this.handleClickOutside, true);
+        document.removeEventListener('touchend', this.handleClickOutside, true);
       }
     }, {
       key: 'handleClickOutside',
